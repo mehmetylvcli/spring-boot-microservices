@@ -1,0 +1,14 @@
+# -> package
+FROM maven:3.8.7-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+# RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn clean package -DskipTests && ls -la target/
+
+#-> run service
+FROM amazoncorretto:17
+COPY --from=build /app/target/user-product-service.jar application.jar
+CMD apt-get update -y
+ENTRYPOINT ["java", "-Xmx2048M", "-jar", "/application.jar"]
+

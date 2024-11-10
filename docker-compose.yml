@@ -1,0 +1,56 @@
+services:
+  postgres:
+    container_name: postgres-db
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRES_PASSWORD=S3cret
+      - POSTGRES_USER=admin-user
+      - POSTGRES_DB=user-product
+  user-product-service:
+    container_name: user-product-service
+    build:
+      context: ./user-product-service
+      dockerfile: DockerFile
+    ports:
+      - "8081:8081"
+    environment: 
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/user-product
+      SPRING_DATASOURCE_USERNAME: admin-user
+      SPRING_DATASOURCE_PASSWORD: S3cret
+    depends_on:
+      - postgres
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin-user
+      MONGO_INITDB_ROOT_PASSWORD: S3cret
+      MONGO_INITDB_DATABASE: tax-calculate
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+  tax-calculate-service:
+    container_name: tax-calculate-service
+    build:
+      context: ./tax-calculate-service
+      dockerfile: DockerFile
+    ports:
+      - "8082:8082"
+    environment: 
+      SPRING_DATASOURCE_URL: mongodb://admin-user:S3cret@mongodb:27017/tax-calculate
+      SPRING_DATASOURCE_USERNAME: admin-user
+      SPRING_DATASOURCE_PASSWORD: S3cret
+    depends_on:
+      - mongodb
+
+volumes:
+  postgres_data:
+  mongodb_data:
+    driver: local
